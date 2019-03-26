@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <style>
+        *{margin: 0;padding: 0;}
+        body{
+            -webkit-user-select:none;
+            -moz-user-select:none;
+            -ms-user-select:none;
+            user-select:none;
+        }
+        #game{
+            position: relative;
+            overflow: hidden;
+            width: 800px;
+            height: 600px;
+            background-image: url('images/background.png');
+        }
+        #bird{
+            position: absolute;
+            width: 33px;
+            height: 25px;
+            background-image: url('images/bird.png');
+            background-repeat: no-repeat;
+            background-position: -8px, -100px;
+            top: 100px;
+            left: 100px;
+        }
+        .pipeTop{
+            background: url(images/pipe2.png) center bottom;
+            position: absolute;
+        }
+        .pipeBottom{
+            background: url(images/pipe1.png) top center;
+            position: absolute;
+        }
+        #out{
+            width: 800px;
+            height: 600px;
+            position: absolute;
+            top: 14px;
+            left: 700px;
+        }
+        #end{
+            display: none;
+            width: 800px;
+            height: 600px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            background-color: rgba(200,200,200,0.8);
+        }
+        #end p{
+            margin: 150px auto 20px;
+            display: block;
+            width: 400px;
+            height: 100px;
+            text-align: center;
+            color: red;
+            letter-spacing: 10px;
+            font-size: 50px;
+            line-height: 100px;
+            /*border: 1px solid red;*/
+        }
+        #end span{
+            display: block;
+            margin: 10px auto;
+            color: green;
+            font-size: 30px;
+            width: 400px;
+            text-align: center;
+            letter-spacing: 10px;
+            /*border:1px solid green;*/
+        }
+        #end input{
+            position: absolute;
+            left: 300px;
+            top: 364px;
+            width: 180px;
+            height: 80px;
+            outline: none;
+            border-top: 3px solid red;
+            border-bottom: 3px solid green;
+            border-radius: 30px;
+            color: red;
+            font-size: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <div id="bird"></div>
+    </div>
+    <div id="out">得分:1024</div>
+    <div id="end">
+        <p>恭喜你</p>
+        <span id="endOut">获得1024分</span>
+        <input type="button" id="btn" value="再来一局" />
+    </div>
+    <script>
+        var gameID = document.querySelector('#game');
+        var birdID = document.querySelector('#bird');
+        var end = document.querySelector('#end');
+        var btn = document.querySelector('#btn');
+        var out = document.querySelector('#out');
+        var endOut = document.querySelector('#endOut');
+
+        var isGameOver = false;
+
+        function Pipe(positionX) {
+            this.x = positionX;
+
+            this.divTop = document.createElement('div');
+            this.divTop.className = 'pipeTop';
+
+            this.divTop.style.left = this.x + "px";
+            this.divTop.style.top = 0+'px';
+            this.divTop.style.width = 52+'px';
+
+            this.topPipeH = parseInt(Math.random() * 175 + 100);
+            this.divTop.style.height = this.topPipeH+'px';
+
+            this.divBottom = document.createElement('div');
+            this.divBottom.className = 'pipeBottom';
+
+            this.divBottom.style.left = this.x + "px";
+
+            this.bottomPipeY = this.topPipeH + 200;
+            this.divBottom.style.top = this.bottomPipeY + "px";
+            this.divBottom.style.width = 52+'px';
+
+            this.bottomPipeH = gameID.offsetHeight - this.bottomPipeY;
+            this.divBottom.style.height = this.bottomPipeH + "px";
+
+            gameID.appendChild(this.divBottom);
+            gameID.appendChild(this.divTop);
+
+            this.isPass = false;
+
+            this.randomF = function(){
+                this.topPipeH = parseInt(Math.random() * 175 + 100);
+                this.divTop.style.height = this.topPipeH+'px';
+
+                this.bottomPipeY = this.topPipeH + parseInt(Math.random() * 150 + 100);
+                this.divBottom.style.top = this.bottomPipeY + "px";
+
+                this.bottomPipeH=gameID.offsetHeight-this.bottomPipeY;
+                this.divBottom.style.height = this.bottomPipeH + "px";
+            }
+            this.check = function(){
+                var birdRight = birdID.offsetLeft+birdID.offsetWidth;
+                var birdBottom = birdID.offsetTop+birdID.offsetHeight;
+
+                if((birdRight >= this.x)&&(birdID.offsetLeft <= this.x + 52)){
+                    if((birdBottom >= this.divBottom.offsetTop)||(birdID.offsetTop <= this.divTop.offsetHeight)){
+                            isGameOver = true;
+                        }
+                }
+                if(!this.isPass){
+                    if(birdID.offsetLeft >= this.x + 52){
+                        Score += 10;
+                        this.isPass = true;
+                    }
+                }
+
+            }
+            this.move = function(){
+                if (this.x < -52){
+                    this.x = 800;
+                    this.isPass = false;
+                    this.randomF();
+                }
+                this.x -= 3;
+                this.divTop.style.left = this.x + "px";
+                this.divBottom.style.left = this.x + "px";
+                this.check();
+            }
+            this.reset = function(x){
+                this.x = x;
+                this.divTop.style.left = this.x + "px";
+                this.divBottom.style.left = this.x + "px";
+                this.randomF();
+            }
+
+        }
+
+        var pipes = [];
+        for(var i = 0; i < 4; i++){
+            pipes[i] = new Pipe(400 + 200 * i);
+        }
+
+
+
+        var sky = {
+            postion:0
+        }
+        var gravity = 1; //加速度
+        var Score = 0; //得分
+        var bird = {
+            x:birdID.offsetLeft,
+            y:birdID.offsetTop,
+            speedY:0
+        }
+
+        function backgroundMove(){
+            sky.postion -= 5;
+            gameID.style.backgroundPositionX = sky.postion + 'px';
+        }
+        function birdMove() {
+            bird.speedY += gravity;
+            bird.y += bird.speedY;
+            if( bird.y > gameID.offsetHeight - birdID.offsetHeight){
+                bird.y = gameID.offsetHeight - birdID.offsetHeight;
+                isGameOver = true;
+            }
+            if (bird.y < 0){
+                bird.y = 0;
+                isGameOver = true;
+            }
+            birdID.style.top = bird.y + 'px';
+        }
+        function pipeMove(pipe){
+            for (var i = 0; i > 4; i++) {
+                pipe[i].move();
+            }
+
+        }
+        function updateScore(){
+            out.innerHTML = "得分:"+Score;
+        }
+        var timerF;
+        function bgeinGame(){
+            timerF = setInterval(function(){
+                if(!isGameOver){
+                    backgroundMove();
+                    birdMove();
+                    pipes[0].move();
+                    pipes[1].move();
+                    pipes[2].move();
+                    pipes[3].move();
+                    updateScore();
+                }else{
+                    showbutton();
+                    clearInterval(timerF);
+                }
+            },30);
+        }
+        function showbutton(){
+            end.style.display = "block";
+            endOut.innerHTML = "获得"+Score+"分";
+        }
+        function Reset(){
+            end.style.display = "none";
+            birdID.style.left = 100 +"px";
+            birdID.style.top = 100 +"px";
+
+            bird.x = 100 ;
+            bird.y = 100 ;
+            bird.speedY = 0;
+            sky.postion = 0;
+
+            Score = -1;
+
+            pipes[0].reset(400+200*0);
+            pipes[1].reset(400+200*1);
+            pipes[2].reset(400+200*2);
+            pipes[3].reset(400+200*3);
+
+            isGameOver = false;
+        }
+        btn.onclick = function() {
+            Reset();
+            bgeinGame();
+        }
+
+        document.onclick = function(){
+            if(!isGameOver){
+                bird.speedY =  - 10;
+                Score += 1;
+            }
+        }
+        window.onload = function(){
+            bgeinGame();
+        }
+
+    </script>
+</body>
+</html>
